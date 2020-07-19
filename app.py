@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import predict_reply
+import bot_brains
 
 import requests
 from flask import Flask, request
@@ -23,44 +23,44 @@ def verify():
 
 @app.route('/', methods=['POST'])
 def webhook():
-
     # endpoint for processing incoming messaging events
-  try:
-    data = request.get_json()
-    log(data)  # you may not want to log every incoming message in production, but it's good for testing
+    try:
+        data = request.get_json()
+        log(data)  # you may not want to log every incoming message in production, but it's good for testing
 
-    if data["object"] == "page":
+        if data["object"] == "page":
 
-        for entry in data["entry"]:
-            for messaging_event in entry["messaging"]:
+            for entry in data["entry"]:
+                for messaging_event in entry["messaging"]:
 
-                if messaging_event.get("message"):  # someone sent us a message
+                    if messaging_event.get("message"):  # someone sent us a message
 
-                    sender_id = messaging_event["sender"]["id"]        # the facebook ID of the person sending you the message
-                    recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-                    try: 
-                        message_text = messaging_event["message"]["text"]  # the message's text
-            
-                        reply=predict(message_text)
-                        send_message(sender_id, str(reply))
-                    except:
-                        send_message(sender_id,str("Sorry! I didn't get that."))    
-                if messaging_event.get("delivery"):  # delivery confirmation
-                    pass
+                        sender_id = messaging_event["sender"][
+                            "id"]  # the facebook ID of the person sending you the message
+                        recipient_id = messaging_event["recipient"][
+                            "id"]  # the recipient's ID, which should be your page's facebook ID
+                        try:
+                            message_text = messaging_event["message"]["text"]  # the message's text
 
-                if messaging_event.get("optin"):  # optin confirmation
-                    pass
+                            reply = predict(message_text)
+                            send_message(sender_id, str(reply))
+                        except:
+                            send_message(sender_id, str("Sorry! I didn't get that."))
+                    if messaging_event.get("delivery"):  # delivery confirmation
+                        pass
 
-                if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
-                    pass
+                    if messaging_event.get("optin"):  # optin confirmation
+                        pass
 
-    return "ok", 200
-  except:
-    pass  
+                    if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
+                        pass
+
+        return "ok", 200
+    except:
+        pass
 
 
 def send_message(recipient_id, message_text):
-
     log("sending message to {recipient}: {text}".format(recipient=recipient_id, text=message_text))
 
     params = {
@@ -84,12 +84,14 @@ def send_message(recipient_id, message_text):
 
 
 def log(message):  # simple wrapper for logging to stdout on heroku
-    print str(message)
+    print(str(message))
     sys.stdout.flush()
 
+
 def predict(incoming_msg):
-    return predict_reply.classify(incoming_msg);
+    return bot_brains.process_message(incoming_msg)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
-    #print(predict(raw_input("Enter something")))
+    # print(predict(input("Enter something")))
